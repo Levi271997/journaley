@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+/* A warm, paper-like palette in light mode; ink and slate after dark. */
+@theme {
+  --color-paper: #faf7f2;
+  --color-surface: #ffffff;
+  --color-line: #e7e0d5;
+  --color-ink: #23201c;
+  --color-muted: #7a736a;
+  --color-accent: #8a5a2b;
+  --color-accent-soft: #f3e7d9;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-lora), ui-serif, Georgia, serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-paper: #16151a;
+    --color-surface: #1e1d23;
+    --color-line: #33313a;
+    --color-ink: #ece9e4;
+    --color-muted: #a09a92;
+    --color-accent: #d9a066;
+    --color-accent-soft: #2c2620;
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: light dark;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: var(--color-accent-soft);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+@utility field {
+  @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-ink
+         placeholder:text-muted/70 focus:border-accent focus:outline-none;
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2
+         text-sm font-medium transition-colors disabled:opacity-50;
+}

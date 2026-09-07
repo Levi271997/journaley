@@ -1,0 +1,39 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { JournalShell } from "@/components/journal-shell";
+import { getCurrentUser } from "@/lib/auth";
+import { countEntries } from "@/lib/entries";
+
+export default async function JournalPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const search = (await searchParams).q ?? "";
+  const total = countEntries(user.id);
+
+  return (
+    <JournalShell search={search}>
+      <div className="flex min-h-80 flex-col items-center justify-center rounded-2xl border border-dashed border-line px-6 py-16 text-center">
+        <div className="mb-4 text-4xl">🕯️</div>
+        <h2 className="font-serif text-2xl">
+          {total === 0 ? "Your journal is empty" : `Hello again, ${user.username}`}
+        </h2>
+        <p className="mt-2 max-w-sm text-sm text-muted">
+          {total === 0
+            ? "Write the first page. Only you can read what goes in here."
+            : "Pick an entry from the left, or start a new one."}
+        </p>
+        <Link
+          href="/journal/new"
+          className="btn mt-6 bg-accent text-paper hover:opacity-90"
+        >
+          ＋ New entry
+        </Link>
+      </div>
+    </JournalShell>
+  );
+}
