@@ -22,6 +22,10 @@ export type Entry = {
   /** Rich text from the editor; `body` is its plain-text mirror. */
   body_html: string;
   mood: string | null;
+  /** One value from lib/categories, or null when the entry is unfiled. */
+  category: string | null;
+  /** The writer's own labels, stored as lowercase slugs. */
+  tags: string[];
   /** Date only, `YYYY-MM-DD`. */
   entry_date: string;
   created_at: string;

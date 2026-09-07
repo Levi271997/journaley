@@ -1,19 +1,33 @@
 import "server-only";
+import { CATEGORIES } from "./categories";
 import type { Entry } from "./db";
 import { createClient } from "./supabase/server";
+import { normalizeTag } from "./tags";
+
+const CATEGORY_VALUES = new Set<string>(CATEGORIES.map((c) => c.value));
 
 export type EntrySummary = Pick<
   Entry,
-  "id" | "title" | "body" | "mood" | "entry_date" | "updated_at"
+  | "id"
+  | "title"
+  | "body"
+  | "mood"
+  | "category"
+  | "tags"
+  | "entry_date"
+  | "updated_at"
 >;
 
-const SUMMARY_COLUMNS = "id, title, body, mood, entry_date, updated_at";
+const SUMMARY_COLUMNS =
+  "id, title, body, mood, category, tags, entry_date, updated_at";
 
 export type EntryInput = {
   title: string;
   body: string;
   bodyHtml: string;
   mood: string | null;
+  category: string | null;
+  tags: string[];
   entryDate: string;
 };
 
@@ -23,6 +37,8 @@ function row(input: EntryInput) {
     body: input.body,
     body_html: input.bodyHtml,
     mood: input.mood,
+    category: input.category,
+    tags: input.tags,
     entry_date: input.entryDate,
   };
 }
@@ -47,6 +63,10 @@ export type EntryFilters = {
   /** Inclusive `YYYY-MM-DD` bounds on entry_date; either may stand alone. */
   from?: string;
   to?: string;
+  /** One value from lib/categories; anything else matches nothing. */
+  category?: string;
+  /** A single tag the entry must carry. */
+  tag?: string;
 };
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
@@ -72,6 +92,19 @@ export async function listEntries(
   }
   if (filters.to && DATE_ONLY.test(filters.to)) {
     query = query.lte("entry_date", filters.to);
+  }
+
+  // Only a known category is worth a filter; an unknown one would quietly
+  // match nothing, which reads as "your entries vanished".
+  if (filters.category && CATEGORY_VALUES.has(filters.category)) {
+    query = query.eq("category", filters.category);
+  }
+
+  // Normalised first, so a tag typed into the URL by hand still matches the
+  // slug that was stored.
+  const tag = normalizeTag(filters.tag ?? "");
+  if (tag) {
+    query = query.contains("tags", [tag]);
   }
 
   const { data, error } = await query
@@ -145,4 +178,32 @@ export async function countEntries(userId: string) {
 
   if (error) throw new Error(`Could not count entries: ${error.message}`);
   return count ?? 0;
+}
+
+/**
+ * Every tag the user has used, most-used first, so the sidebar can offer the
+ * ones they actually reach for. Postgres could do the unnesting, but that
+ * would mean a database function to call through PostgREST; one personal
+ * journal's worth of tag arrays is small enough to fold here instead.
+ */
+export async function listTags(userId: string): Promise<string[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("entries")
+    .select("tags")
+    .eq("user_id", userId);
+
+  if (error) throw new Error(`Could not load tags: ${error.message}`);
+
+  const counts = new Map<string, number>();
+  for (const entry of data ?? []) {
+    for (const tag of entry.tags ?? []) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+  }
+
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([tag]) => tag);
 }

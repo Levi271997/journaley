@@ -3,10 +3,13 @@
 import { useActionState, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { deleteEntry, saveEntry, type FormState } from "@/app/actions";
+import { CATEGORIES } from "@/lib/categories";
 import type { Entry } from "@/lib/db";
 import { MOODS } from "@/lib/moods";
+import { normalizeTag } from "@/lib/tags";
 import { ConfirmDialog } from "./confirm-dialog";
 import { RichTextEditor } from "./rich-text-editor";
+import { TagInput } from "./tag-input";
 
 const EMPTY: FormState = {};
 
@@ -62,7 +65,14 @@ export function EntryEditor({
   // an error.
   const [title, setTitle] = useState(entry?.title ?? "");
   const [mood, setMood] = useState(entry?.mood ?? "");
+  const [category, setCategory] = useState(entry?.category ?? "");
   const [date, setDate] = useState(entry?.entry_date ?? today);
+
+  // The draft is whatever has been typed but not yet turned into a chip. It
+  // rides along in the hidden field so saving mid-word never loses a tag.
+  const [tags, setTags] = useState<string[]>(entry?.tags ?? []);
+  const [tagDraft, setTagDraft] = useState("");
+  const tagField = [...tags, normalizeTag(tagDraft)].filter(Boolean).join(",");
 
   // The editor keeps both shapes: HTML is what gets stored and reopened, and
   // the plain text is what search and the sidebar previews read.
@@ -76,6 +86,7 @@ export function EntryEditor({
         {entry && <input type="hidden" name="id" value={entry.id} />}
         <input type="hidden" name="body_html" value={html} />
         <input type="hidden" name="body" value={text} />
+        <input type="hidden" name="tags" value={tagField} />
 
         <div className="flex flex-wrap items-center gap-3">
           <input
@@ -97,6 +108,21 @@ export function EntryEditor({
           >
             <option value="">Mood…</option>
             {MOODS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.emoji} {option.label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            name="category"
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+            aria-label="Category"
+            className="field w-auto py-1.5 text-sm"
+          >
+            <option value="">Category…</option>
+            {CATEGORIES.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.emoji} {option.label}
               </option>
@@ -129,6 +155,13 @@ export function EntryEditor({
             setHtml(nextHtml);
             setText(nextText);
           }}
+        />
+
+        <TagInput
+          tags={tags}
+          draft={tagDraft}
+          onTagsChange={setTags}
+          onDraftChange={setTagDraft}
         />
 
         {state.error && (

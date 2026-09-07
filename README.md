@@ -12,6 +12,8 @@ Built with **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind
 - **Accounts with a real login** — email and password handled by Supabase Auth, with
   session cookies refreshed automatically on every request.
 - **Write, edit and delete entries** — title, free text, a date and an optional mood.
+- **Categories and tags** — file an entry under one category and give it as many of
+  your own tags as you like, then narrow the sidebar to either.
 - **Search** across titles and entry text as you type.
 - **Your entries are yours** — Row Level Security in Postgres means one account
   physically cannot read another's pages, even if the app had a bug.
@@ -24,6 +26,11 @@ You need a Supabase project (the free tier is plenty).
 1. **Create the table.** In the Supabase dashboard open **SQL Editor → New query**, paste
    [`supabase/schema.sql`](supabase/schema.sql) and run it. This creates the `entries`
    table, its index, the `updated_at` trigger and the RLS policy.
+
+   If your project is older than a feature, the files in
+   [`supabase/migrations/`](supabase/migrations/) add it to an existing table — run
+   `002_add_tags_and_category.sql` the same way to get the category and tag columns.
+   A project created from `schema.sql` today already has them.
 
 2. **Add your credentials.** Copy `.env.example` to `.env.local` and fill in the
    two values from the dashboard's **Connect** button (App Frameworks → Next.js):

@@ -53,3 +53,15 @@ create policy "entries are private to their owner"
 -- plain-text copy for searching and for the sidebar previews.
 alter table public.entries
   add column if not exists body_html text not null default '';
+
+-- Labels: `category` is one value from the app's fixed list, `tags` are the
+-- writer's own, stored as lowercase slugs.
+alter table public.entries
+  add column if not exists category text,
+  add column if not exists tags     text[] not null default '{}';
+
+create index if not exists idx_entries_tags
+  on public.entries using gin (tags);
+
+create index if not exists idx_entries_user_category
+  on public.entries (user_id, category);

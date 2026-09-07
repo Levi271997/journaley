@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { deleteEntry } from "@/app/actions";
+import { CATEGORY_EMOJI, CATEGORY_LABEL } from "@/lib/categories";
 import type { EntrySummary } from "@/lib/entries";
 import { ConfirmDialog } from "./confirm-dialog";
 
@@ -24,6 +25,8 @@ function formatDate(date: string) {
         year: "numeric",
       });
 }
+
+const MAX_VISIBLE_TAGS = 3;
 
 const ACTION_CLASS =
   "flex h-7 w-7 items-center justify-center rounded-md text-muted transition-colors " +
@@ -156,6 +159,29 @@ export function EntryList({
               <div className="mt-0.5 text-xs text-muted">{formatDate(entry.entry_date)}</div>
               {entry.body && (
                 <p className="mt-1 line-clamp-2 text-xs text-muted">{preview(entry.body)}</p>
+              )}
+
+              {/* Labels last, and only the first few tags: the sidebar is a
+                  list of entries, not of everything attached to them. */}
+              {(entry.category || entry.tags?.length > 0) && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                  {entry.category && (
+                    <span className="rounded-full bg-accent-soft px-1.5 py-0.5 text-[0.65rem]">
+                      {CATEGORY_EMOJI[entry.category]}{" "}
+                      {CATEGORY_LABEL[entry.category] ?? entry.category}
+                    </span>
+                  )}
+                  {entry.tags?.slice(0, MAX_VISIBLE_TAGS).map((tag) => (
+                    <span key={tag} className="text-[0.65rem] text-muted">
+                      #{tag}
+                    </span>
+                  ))}
+                  {entry.tags?.length > MAX_VISIBLE_TAGS && (
+                    <span className="text-[0.65rem] text-muted">
+                      +{entry.tags.length - MAX_VISIBLE_TAGS}
+                    </span>
+                  )}
+                </div>
               )}
             </Link>
 

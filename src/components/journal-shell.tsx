@@ -2,11 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { logout } from "@/app/actions";
 import { getCurrentUser } from "@/lib/auth";
-import { listEntries, type EntryFilters } from "@/lib/entries";
+import { listEntries, listTags, type EntryFilters } from "@/lib/entries";
 import { MOOD_EMOJI } from "@/lib/moods";
+import { CategoryFilter } from "./category-filter";
 import { DateFilter } from "./date-filter";
 import { EntryList } from "./entry-list";
 import { SearchBox } from "./search-box";
+import { TagFilter } from "./tag-filter";
 
 /**
  * The signed-in frame: top bar, entry sidebar, and whatever the current page
@@ -22,8 +24,20 @@ export async function JournalShell({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const entries = await listEntries(user.id, filters);
-  const narrowed = Boolean(filters.search?.trim() || filters.from || filters.to);
+  // The tag list is of every tag the user owns, not just the ones surviving
+  // the current filter, so narrowing to one tag does not hide all the others.
+  const [entries, tags] = await Promise.all([
+    listEntries(user.id, filters),
+    listTags(user.id),
+  ]);
+
+  const narrowed = Boolean(
+    filters.search?.trim() ||
+      filters.from ||
+      filters.to ||
+      filters.category ||
+      filters.tag,
+  );
 
   return (
     <div className="min-h-dvh">
@@ -58,6 +72,10 @@ export async function JournalShell({
           <SearchBox initial={filters.search ?? ""} />
 
           <DateFilter from={filters.from ?? ""} to={filters.to ?? ""} />
+
+          <CategoryFilter category={filters.category ?? ""} />
+
+          <TagFilter tags={tags} active={filters.tag ?? ""} />
 
           <p className="px-1 text-xs tracking-wide text-muted uppercase">
             {entries.length} {entries.length === 1 ? "entry" : "entries"}
