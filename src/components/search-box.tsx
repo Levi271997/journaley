@@ -1,24 +1,22 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
+import { useJournalQuery } from "./use-journal-query";
 
 export function SearchBox({ initial }: { initial: string }) {
-  const router = useRouter();
+  const { apply, isPending } = useJournalQuery();
   const [value, setValue] = useState(initial);
-  const [isPending, startTransition] = useTransition();
 
   // Debounce so a fast typist does not fire a request per keystroke.
   useEffect(() => {
     if (value === initial) return;
 
-    const timer = setTimeout(() => {
-      const query = value.trim() ? `?q=${encodeURIComponent(value.trim())}` : "";
-      startTransition(() => router.replace(`/journal${query}`));
-    }, 250);
-
+    const timer = setTimeout(() => apply({ q: value.trim() }), 250);
     return () => clearTimeout(timer);
-  }, [value, initial, router]);
+    // `apply` is rebuilt on every render; re-running the timer for it would
+    // defeat the debounce.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, initial]);
 
   return (
     <div className="relative">

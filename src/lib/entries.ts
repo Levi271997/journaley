@@ -40,15 +40,36 @@ function ilikePattern(search: string) {
  * in the policies cannot quietly turn into one person reading another's diary.
  */
 
-export async function listEntries(userId: string, search = ""): Promise<EntrySummary[]> {
+export type EntryFilters = {
+  search?: string;
+  /** Inclusive `YYYY-MM-DD` bounds on entry_date; either may stand alone. */
+  from?: string;
+  to?: string;
+};
+
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+export async function listEntries(
+  userId: string,
+  filters: EntryFilters = {},
+): Promise<EntrySummary[]> {
   const supabase = await createClient();
 
   let query = supabase.from("entries").select(SUMMARY_COLUMNS).eq("user_id", userId);
 
-  const term = search.trim();
+  const term = (filters.search ?? "").trim();
   if (term) {
     const pattern = ilikePattern(term);
     query = query.or(`title.ilike.${pattern},body.ilike.${pattern}`);
+  }
+
+  // Anything that is not a plain date is ignored rather than handed to
+  // PostgREST, which would reject the whole request.
+  if (filters.from && DATE_ONLY.test(filters.from)) {
+    query = query.gte("entry_date", filters.from);
+  }
+  if (filters.to && DATE_ONLY.test(filters.to)) {
+    query = query.lte("entry_date", filters.to);
   }
 
   const { data, error } = await query

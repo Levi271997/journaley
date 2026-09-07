@@ -7,16 +7,19 @@ import { countEntries } from "@/lib/entries";
 export default async function JournalPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; from?: string; to?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const search = (await searchParams).q ?? "";
+  const { q, from, to } = await searchParams;
+
+  // The count is of everything, not of the current filter — it decides
+  // between the empty state and the greeting.
   const total = await countEntries(user.id);
 
   return (
-    <JournalShell search={search}>
+    <JournalShell filters={{ search: q ?? "", from: from ?? "", to: to ?? "" }}>
       <div className="flex min-h-80 flex-col items-center justify-center rounded-2xl border border-dashed border-line px-6 py-16 text-center">
         <div className="mb-4 text-4xl">🕯️</div>
         <h2 className="font-serif text-2xl">

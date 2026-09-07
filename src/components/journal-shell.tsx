@@ -2,8 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { logout } from "@/app/actions";
 import { getCurrentUser } from "@/lib/auth";
-import { listEntries } from "@/lib/entries";
+import { listEntries, type EntryFilters } from "@/lib/entries";
 import { MOOD_EMOJI } from "@/lib/moods";
+import { DateFilter } from "./date-filter";
 import { EntryList } from "./entry-list";
 import { SearchBox } from "./search-box";
 
@@ -12,16 +13,17 @@ import { SearchBox } from "./search-box";
  * puts in the main pane. Redirects to the login screen when nobody is signed in.
  */
 export async function JournalShell({
-  search = "",
+  filters = {},
   children,
 }: {
-  search?: string;
+  filters?: EntryFilters;
   children: React.ReactNode;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const entries = await listEntries(user.id, search);
+  const entries = await listEntries(user.id, filters);
+  const narrowed = Boolean(filters.search?.trim() || filters.from || filters.to);
 
   return (
     <div className="min-h-dvh">
@@ -53,11 +55,13 @@ export async function JournalShell({
             ＋ New entry
           </Link>
 
-          <SearchBox initial={search} />
+          <SearchBox initial={filters.search ?? ""} />
+
+          <DateFilter from={filters.from ?? ""} to={filters.to ?? ""} />
 
           <p className="px-1 text-xs tracking-wide text-muted uppercase">
             {entries.length} {entries.length === 1 ? "entry" : "entries"}
-            {search && " found"}
+            {narrowed && " found"}
           </p>
 
           <nav aria-label="Your entries">
@@ -65,7 +69,7 @@ export async function JournalShell({
               entries={entries}
               moods={MOOD_EMOJI}
               emptyMessage={
-                search ? "No entries match that search." : "No entries yet."
+                narrowed ? "No entries match those filters." : "No entries yet."
               }
             />
           </nav>
