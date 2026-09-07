@@ -19,7 +19,7 @@ function SubmitButton({ label }: { label: string }) {
   );
 }
 
-export function AuthForm() {
+export function AuthForm({ initialError }: { initialError?: string }) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [loginState, loginAction] = useActionState(login, EMPTY);
   const [registerState, registerAction] = useActionState(register, EMPTY);
@@ -34,6 +34,9 @@ export function AuthForm() {
 
   const isLogin = mode === "login";
   const state = isLogin ? loginState : registerState;
+
+  // A failed submit replaces whatever the confirmation link complained about.
+  const error = state.error ?? initialError;
 
   function switchMode() {
     setMode(isLogin ? "register" : "login");
@@ -139,12 +142,12 @@ export function AuthForm() {
           </div>
         )}
 
-        {state.error && (
+        {error && (
           <p
             role="alert"
             className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400"
           >
-            {state.error}
+            {error}
           </p>
         )}
 

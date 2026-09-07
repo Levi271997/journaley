@@ -34,8 +34,26 @@ You need a Supabase project (the free tier is plenty).
    ```
 
 3. **Decide about email confirmation.** Under **Authentication → Sign In / Providers →
-   Email**, turning *Confirm email* off lets a new account sign in immediately. Left on,
-   signup asks you to open a link first — which is what you want in production.
+   Email**, turning *Confirm email* off lets a new account sign in immediately, which is
+   the quickest way to try the app locally.
+
+   Leaving it on is what you want in production, and then two settings matter:
+
+   - **Authentication → URL Configuration** — set **Site URL** to where the app runs
+     (`http://localhost:3000` in development, your real origin in production) and add
+     `<your origin>/**` to **Redirect URLs**.
+   - **Authentication → Emails → Confirm signup** — replace the default
+     `{{ .ConfirmationURL }}` link with:
+
+     ```
+     {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email
+     ```
+
+     The default template uses the implicit flow, which returns the token in the URL
+     fragment where server-side code cannot read it. The `token_hash` form is handled by
+     [`src/app/auth/confirm/route.ts`](src/app/auth/confirm/route.ts), which trades it for
+     a session cookie and drops the reader in their journal. The same route also covers
+     password-recovery and email-change links if you enable those templates.
 
 4. **Run it.**
 
