@@ -15,6 +15,8 @@ Built with **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind
 - **Categories and tags** — file an entry under one category and give it as many of
   your own tags as you like, then narrow the sidebar to either.
 - **Search** across titles and entry text as you type.
+- **Profile settings** — a display name and picture, and changes of email address or
+  password, all from `/journal/settings`.
 - **Your entries are yours** — Row Level Security in Postgres means one account
   physically cannot read another's pages, even if the app had a bug.
 - **Warm, paper-like design** that follows your system light/dark setting.
@@ -27,10 +29,13 @@ You need a Supabase project (the free tier is plenty).
    [`supabase/schema.sql`](supabase/schema.sql) and run it. This creates the `entries`
    table, its index, the `updated_at` trigger and the RLS policy.
 
+   This also creates the `avatars` storage bucket that profile pictures live in.
+
    If your project is older than a feature, the files in
-   [`supabase/migrations/`](supabase/migrations/) add it to an existing table — run
-   `002_add_tags_and_category.sql` the same way to get the category and tag columns.
-   A project created from `schema.sql` today already has them.
+   [`supabase/migrations/`](supabase/migrations/) add it to an existing project — run
+   `002_add_tags_and_category.sql` for the category and tag columns, and
+   `003_add_avatars_bucket.sql` for profile pictures. A project created from
+   `schema.sql` today already has both.
 
 2. **Add your credentials.** Copy `.env.example` to `.env.local` and fill in the
    two values from the dashboard's **Connect** button (App Frameworks → Next.js):
@@ -59,8 +64,11 @@ You need a Supabase project (the free tier is plenty).
      The default template uses the implicit flow, which returns the token in the URL
      fragment where server-side code cannot read it. The `token_hash` form is handled by
      [`src/app/auth/confirm/route.ts`](src/app/auth/confirm/route.ts), which trades it for
-     a session cookie and drops the reader in their journal. The same route also covers
-     password-recovery and email-change links if you enable those templates.
+     a session cookie and drops the reader in their journal.
+
+   - **Authentication → Emails → Change Email Address** — the same rewrite, with
+     `&type=email_change`, so the address change offered in profile settings can be
+     confirmed. The route handles password-recovery links the same way.
 
 4. **Run it.**
 

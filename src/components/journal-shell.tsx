@@ -4,6 +4,7 @@ import { logout } from "@/app/actions";
 import { getCurrentUser } from "@/lib/auth";
 import { listEntries, listTags, type EntryFilters } from "@/lib/entries";
 import { MOOD_EMOJI } from "@/lib/moods";
+import { Avatar } from "./avatar";
 import { CategoryFilter } from "./category-filter";
 import { DateFilter } from "./date-filter";
 import { EntryList } from "./entry-list";
@@ -50,7 +51,16 @@ export async function JournalShell({
             📔 Journaley
           </Link>
           <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-sm text-muted sm:inline">{user.username}</span>
+            <Link
+              href="/journal/settings"
+              title="Profile settings"
+              className="flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-accent-soft"
+            >
+              <Avatar src={user.avatar_url} name={user.username} />
+              <span className="hidden text-sm text-muted sm:inline">
+                {user.username}
+              </span>
+            </Link>
             <form action={logout}>
               <button
                 type="submit"

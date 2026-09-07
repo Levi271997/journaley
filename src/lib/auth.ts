@@ -14,6 +14,11 @@ function displayName(user: SupabaseUser) {
   return (user.email ?? "").split("@")[0] || "you";
 }
 
+function avatarUrl(user: SupabaseUser) {
+  const url = user.user_metadata?.avatar_url;
+  return typeof url === "string" && url ? url : null;
+}
+
 /** The signed-in user for this request, or null. */
 export async function getCurrentUser(): Promise<User | null> {
   const supabase = await createClient();
@@ -27,6 +32,7 @@ export async function getCurrentUser(): Promise<User | null> {
     id: data.user.id,
     email: data.user.email ?? "",
     username: displayName(data.user),
+    avatar_url: avatarUrl(data.user),
     created_at: data.user.created_at,
   };
 }
@@ -73,4 +79,51 @@ export async function signUp(
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+}
+
+/* ------------------------------------------------------------- the profile */
+
+/**
+ * Display name and picture both live in the account's user metadata, which is
+ * readable and writable only by the account itself — the same boundary the
+ * entries sit behind. Returns an error message, or null.
+ */
+export async function updateProfile(username: string, avatarUrl: string | null) {
+  const supabase = await createClient();
+
+  const { error } = await supabase.auth.updateUser({
+    data: { username, avatar_url: avatarUrl },
+  });
+
+  return error ? error.message : null;
+}
+
+/**
+ * Starts an email change. Supabase does not swap the address until the link it
+ * sends has been opened, which is why this reports a notice rather than done.
+ */
+export async function changeEmail(email: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ email });
+  return error ? error.message : null;
+}
+
+export async function changePassword(current: string, next: string) {
+  const supabase = await createClient();
+
+  const { data } = await supabase.auth.getUser();
+  const email = data.user?.email;
+  if (!email) return "You are not signed in.";
+
+  // Supabase would take the new password on the strength of the session cookie
+  // alone. Asking for the current one is what stops a browser someone left
+  // open from becoming a change of ownership.
+  const { error: wrong } = await supabase.auth.signInWithPassword({
+    email,
+    password: current,
+  });
+  if (wrong) return "That is not your current password.";
+
+  const { error } = await supabase.auth.updateUser({ password: next });
+  return error ? error.message : null;
 }

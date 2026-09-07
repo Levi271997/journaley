@@ -2,7 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getCurrentUser, signIn, signOut, signUp } from "@/lib/auth";
+import {
+  changeEmail,
+  changePassword,
+  getCurrentUser,
+  signIn,
+  signOut,
+  signUp,
+  updateProfile,
+} from "@/lib/auth";
+import { removeAvatar, uploadAvatar } from "@/lib/avatars";
 import { createEntry, deleteEntry as removeEntry, updateEntry } from "@/lib/entries";
 import { CATEGORIES } from "@/lib/categories";
 import { MOODS } from "@/lib/moods";
@@ -55,6 +64,89 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
 export async function logout() {
   await signOut();
   redirect("/login");
+}
+
+/* --------------------------------------------------------------- profile */
+
+export async function saveProfile(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const name = String(formData.get("name") ?? "").trim();
+  if (!NAME_RE.test(name)) {
+    return { error: "Name: 2–32 characters, letters, numbers, spaces, . _ - only." };
+  }
+
+  const picked = formData.get("avatar");
+  const file = picked instanceof File && picked.size > 0 ? picked : null;
+
+  let avatar = user.avatar_url;
+  if (file) {
+    const upload = await uploadAvatar(user.id, file);
+    if ("error" in upload) return { error: upload.error };
+    avatar = upload.url;
+  } else if (formData.get("remove_avatar") === "1") {
+    avatar = null;
+  }
+
+  const error = await updateProfile(name, avatar);
+  if (error) return { error };
+
+  // The old file is unlinked only once the account has stopped pointing at it,
+  // so a failure between the two leaves a stray file rather than a broken img.
+  if (user.avatar_url && user.avatar_url !== avatar) {
+    await removeAvatar(user.id, user.avatar_url);
+  }
+
+  revalidatePath("/journal", "layout");
+  return { notice: "Profile updated." };
+}
+
+export async function saveEmail(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const email = String(formData.get("email") ?? "").trim();
+
+  if (!email.includes("@")) return { error: "Enter a valid email address." };
+  if (email.toLowerCase() === user.email.toLowerCase()) {
+    return { error: "That is already your email address." };
+  }
+
+  const error = await changeEmail(email);
+  if (error) return { error };
+
+  return {
+    notice: `Almost there — open the link we sent to ${email} to finish the change.`,
+  };
+}
+
+export async function savePassword(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const current = String(formData.get("current") ?? "");
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+
+  if (!current) return { error: "Enter your current password." };
+  if (password.length < 8) return { error: "Password must be at least 8 characters." };
+  if (password !== confirm) return { error: "The two passwords do not match." };
+  if (password === current) return { error: "That is already your password." };
+
+  const error = await changePassword(current, password);
+  if (error) return { error };
+
+  return { notice: "Password changed." };
 }
 
 /* --------------------------------------------------------------- entries */

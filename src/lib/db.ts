@@ -11,6 +11,8 @@ export type User = {
   email: string;
   /** Display name from signup, kept in the account's user metadata. */
   username: string;
+  /** Public URL of the profile picture, or null while there isn't one. */
+  avatar_url: string | null;
   created_at: string;
 };
 
