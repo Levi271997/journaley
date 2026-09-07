@@ -27,12 +27,13 @@ export function AuthForm() {
   // Controlled fields: React clears an uncontrolled form once its action
   // settles, which would wipe everything typed whenever the form comes back
   // with an error.
-  const [username, setUsername] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
 
   const isLogin = mode === "login";
-  const error = isLogin ? loginState.error : registerState.error;
+  const state = isLogin ? loginState : registerState;
 
   function switchMode() {
     setMode(isLogin ? "register" : "login");
@@ -50,7 +51,7 @@ export function AuthForm() {
         <p className="mt-2 text-sm text-muted">
           {isLogin
             ? "Sign in to open your journal."
-            : "Pick a username and a password you will remember."}
+            : "Your email and a password you will remember."}
         </p>
       </div>
 
@@ -59,22 +60,42 @@ export function AuthForm() {
         action={isLogin ? loginAction : registerAction}
         className="space-y-4 rounded-2xl border border-line bg-surface p-6 shadow-sm"
       >
+        {!isLogin && (
+          <div>
+            <label htmlFor="name" className="mb-1.5 block text-sm font-medium">
+              Your name
+            </label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              required
+              minLength={2}
+              maxLength={32}
+              autoComplete="nickname"
+              autoFocus
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              className="field"
+            />
+            <p className="mt-1.5 text-xs text-muted">What the journal greets you by.</p>
+          </div>
+        )}
+
         <div>
-          <label htmlFor="username" className="mb-1.5 block text-sm font-medium">
-            Username
+          <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
+            Email
           </label>
           <input
-            id="username"
-            name="username"
-            type="text"
+            id="email"
+            name="email"
+            type="email"
             required
-            minLength={3}
-            maxLength={32}
             spellCheck={false}
-            autoComplete="username"
-            autoFocus
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
+            autoComplete="email"
+            autoFocus={isLogin}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
             className="field"
           />
         </div>
@@ -118,12 +139,21 @@ export function AuthForm() {
           </div>
         )}
 
-        {error && (
+        {state.error && (
           <p
             role="alert"
             className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400"
           >
-            {error}
+            {state.error}
+          </p>
+        )}
+
+        {state.notice && (
+          <p
+            role="status"
+            className="rounded-lg bg-accent-soft px-3 py-2 text-sm"
+          >
+            {state.notice}
           </p>
         )}
 

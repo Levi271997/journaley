@@ -2,57 +2,54 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import {
-  createSession,
-  createUser,
-  destroySession,
-  findUserByName,
-  getCurrentUser,
-  hashPassword,
-  verifyCredentials,
-} from "@/lib/auth";
+import { getCurrentUser, signIn, signOut, signUp } from "@/lib/auth";
 import { createEntry, deleteEntry as removeEntry, updateEntry } from "@/lib/entries";
 import { MOODS } from "@/lib/moods";
 
-export type FormState = { error?: string };
+export type FormState = { error?: string; notice?: string };
 
-const USERNAME_RE = /^[\w.-]{3,32}$/;
+const NAME_RE = /^[\w.\- ]{2,32}$/;
 const MOOD_VALUES = new Set<string>(MOODS.map((m) => m.value));
 
 /* ------------------------------------------------------------------ auth */
 
 export async function login(_prev: FormState, formData: FormData): Promise<FormState> {
-  const username = String(formData.get("username") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
-  if (!username || !password) return { error: "Enter your username and password." };
+  if (!email || !password) return { error: "Enter your email and password." };
 
-  const user = await verifyCredentials(username, password);
-  if (!user) return { error: "Wrong username or password." };
+  const error = await signIn(email, password);
+  if (error) return { error };
 
-  await createSession(user.id);
   redirect("/journal");
 }
 
 export async function register(_prev: FormState, formData: FormData): Promise<FormState> {
-  const username = String(formData.get("username") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
 
-  if (!USERNAME_RE.test(username)) {
-    return { error: "Username: 3–32 characters, letters, numbers, . _ - only." };
+  if (!NAME_RE.test(name)) {
+    return { error: "Name: 2–32 characters, letters, numbers, spaces, . _ - only." };
   }
+  if (!email.includes("@")) return { error: "Enter a valid email address." };
   if (password.length < 8) return { error: "Password must be at least 8 characters." };
   if (password !== confirm) return { error: "The two passwords do not match." };
-  if (findUserByName(username)) return { error: "That username is taken." };
 
-  const id = createUser(username, await hashPassword(password));
-  await createSession(id);
+  const result = await signUp(email, password, name);
+
+  if (result.status === "error") return { error: result.message };
+  if (result.status === "confirm-email") {
+    return { notice: `Almost there — open the confirmation link we sent to ${email}.` };
+  }
+
   redirect("/journal");
 }
 
 export async function logout() {
-  await destroySession();
+  await signOut();
   redirect("/login");
 }
 
@@ -88,11 +85,11 @@ export async function saveEntry(_prev: FormState, formData: FormData): Promise<F
 
   if (rawId) {
     id = Number(rawId);
-    if (!Number.isInteger(id) || !updateEntry(id, user.id, input)) {
+    if (!Number.isInteger(id) || !(await updateEntry(id, user.id, input))) {
       return { error: "That entry no longer exists." };
     }
   } else {
-    id = createEntry(user.id, input);
+    id = await createEntry(user.id, input);
   }
 
   revalidatePath("/journal", "layout");
@@ -104,7 +101,7 @@ export async function deleteEntry(formData: FormData) {
   if (!user) redirect("/login");
 
   const id = Number(formData.get("id"));
-  if (Number.isInteger(id)) removeEntry(id, user.id);
+  if (Number.isInteger(id)) await removeEntry(id, user.id);
 
   revalidatePath("/journal", "layout");
   redirect("/journal");

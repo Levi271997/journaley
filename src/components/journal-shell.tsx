@@ -21,7 +21,7 @@ export async function JournalShell({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const entries = listEntries(user.id, search);
+  const entries = await listEntries(user.id, search);
 
   return (
     <div className="min-h-dvh">

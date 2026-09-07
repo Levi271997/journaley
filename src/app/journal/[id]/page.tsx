@@ -17,7 +17,7 @@ export default async function EntryPage({
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
 
-  const entry = getEntry(id, user.id);
+  const entry = await getEntry(id, user.id);
   if (!entry) notFound();
 
   const saved = (await searchParams).saved === "1";

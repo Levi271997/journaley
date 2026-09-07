@@ -1,33 +1,50 @@
 # 📔 Journaley
 
 A private journal for your own days — write an entry, tag it with a mood, and find it
-again later. Everything lives on your own machine in a single SQLite file.
+again later. Accounts and entries live in your own [Supabase](https://supabase.com)
+project.
 
-Built with **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind CSS v4**
-and **TypeScript**.
+Built with **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind CSS v4**,
+**TypeScript** and **Supabase** (Auth + Postgres).
 
 ## Features
 
-- **Accounts with a real login** — passwords hashed with bcrypt (12 rounds), sessions
-  stored server-side and handed out as an httpOnly cookie.
+- **Accounts with a real login** — email and password handled by Supabase Auth, with
+  session cookies refreshed automatically on every request.
 - **Write, edit and delete entries** — title, free text, a date and an optional mood.
 - **Search** across titles and entry text as you type.
-- **Your entries are yours** — every query is scoped to the signed-in user, so one
-  account can never read another's pages.
+- **Your entries are yours** — Row Level Security in Postgres means one account
+  physically cannot read another's pages, even if the app had a bug.
 - **Warm, paper-like design** that follows your system light/dark setting.
 
 ## Getting started
 
-```bash
-npm install
-npm run dev
-```
+You need a Supabase project (the free tier is plenty).
 
-Open <http://localhost:3000>. The first time you visit, choose **Create one** to make
-your account — after that you just sign in.
+1. **Create the table.** In the Supabase dashboard open **SQL Editor → New query**, paste
+   [`supabase/schema.sql`](supabase/schema.sql) and run it. This creates the `entries`
+   table, its index, the `updated_at` trigger and the RLS policy.
 
-A `journal.db` SQLite file is created next to the project on first run. It is
-git-ignored; back it up if the entries matter to you.
+2. **Add your credentials.** Copy `.env.example` to `.env.local` and fill in the
+   two values from the dashboard's **Connect** button (App Frameworks → Next.js):
+
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+   ```
+
+3. **Decide about email confirmation.** Under **Authentication → Sign In / Providers →
+   Email**, turning *Confirm email* off lets a new account sign in immediately. Left on,
+   signup asks you to open a link first — which is what you want in production.
+
+4. **Run it.**
+
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+Open <http://localhost:3000> and choose **Create one** to make your account.
 
 ### Production
 
@@ -36,22 +53,25 @@ npm run build
 npm start
 ```
 
-There is no signing secret to configure — sessions are random 256-bit ids kept in the
-database. Do serve the app over HTTPS in production, though: the session cookie is
-marked `secure` whenever `NODE_ENV=production`, and browsers drop secure cookies on
-plain HTTP.
+Set the same two environment variables wherever you deploy. Serve over HTTPS: the auth
+cookies are marked `secure` in production and browsers drop those on plain HTTP.
 
 ## Configuration
 
-| Variable  | Default              | What it does                        |
-| --------- | -------------------- | ----------------------------------- |
-| `DB_FILE` | `./journal.db`       | Where the SQLite database is stored |
-| `PORT`    | `3000`               | Port the server listens on          |
+| Variable                               | What it does                                                                            |
+| -------------------------------------- | --------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`             | Your project URL                                                                        |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | The public key. `NEXT_PUBLIC_SUPABASE_ANON_KEY` also works — older projects use that name |
+| `PORT`                                 | Port the server listens on (default `3000`)                                             |
+
+Never put the `service_role` key in a `NEXT_PUBLIC_` variable: it bypasses Row Level
+Security and is shipped to the browser.
 
 ## How it is put together
 
 ```
 src/
+  proxy.ts                Refreshes the Supabase session cookie on every request
   app/
     actions.ts            Server Actions: sign in/up/out, save + delete entries
     page.tsx              Sends you to /journal or /login
@@ -66,21 +86,27 @@ src/
     entry-editor.tsx      Title, body, date, mood, save and delete
     search-box.tsx        Debounced search box
   lib/
-    db.ts                 SQLite schema and connection (node:sqlite, no native build)
-    auth.ts               Password hashing, sessions, current user
+    supabase/env.ts       Reads and validates the project credentials
+    supabase/server.ts    Per-request Supabase client bound to the cookies
+    db.ts                 Row and user types (no queries — types only)
+    auth.ts               Sign in/up/out and the current user
     entries.ts            Entry queries, all scoped by user id
     moods.ts              The mood list, shared by client and server
+supabase/
+  schema.sql              The entries table, index, trigger and RLS policy
 ```
 
-The database uses Node's built-in `node:sqlite`, so there is nothing to compile — but it
-does require **Node 22.5 or newer** (Node 24 recommended).
+`src/proxy.ts` is the file Next.js 14/15 called `middleware.ts` — Next.js 16 renamed the
+convention to Proxy. Supabase's published guides still show the old name.
 
 ## Security notes
 
-- Passwords are never stored, only bcrypt hashes.
-- Sign-in takes the same amount of time for an unknown username as for a wrong password,
-  so the form does not leak which usernames exist.
-- The session id is regenerated on sign-in and sign-up, and deleted server-side on sign
-  out.
-- Entry reads and writes always carry the user id in the `WHERE` clause; asking for
-  someone else's entry returns a 404.
+- Passwords never reach this codebase: Supabase Auth stores and verifies them.
+- Row Level Security is the real boundary. Every statement also carries the user id in
+  its filter as a second lock, so a mistake in the policies cannot quietly expose one
+  person's journal to another.
+- Asking for someone else's entry returns a 404.
+- The session is validated with `auth.getUser()`, which checks the token against the auth
+  server, rather than trusting whatever the cookie claims.
+- Search terms are stripped of the characters PostgREST uses as filter syntax, so a
+  search can only change what is matched, never the shape of the query.

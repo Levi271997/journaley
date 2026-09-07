@@ -13,7 +13,7 @@ export default async function JournalPage({
   if (!user) redirect("/login");
 
   const search = (await searchParams).q ?? "";
-  const total = countEntries(user.id);
+  const total = await countEntries(user.id);
 
   return (
     <JournalShell search={search}>
