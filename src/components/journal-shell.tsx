@@ -28,7 +28,7 @@ export async function JournalShell({
       <header className="sticky top-0 z-10 border-b border-line bg-paper/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
           <Link href="/journal" className="font-serif text-lg whitespace-nowrap">
-            📔 Journal
+            📔 Journaley
           </Link>
           <div className="ml-auto flex items-center gap-3">
             <span className="hidden text-sm text-muted sm:inline">{user.username}</span>
