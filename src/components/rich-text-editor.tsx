@@ -62,7 +62,9 @@ export function RichTextEditor({
     shouldRerenderOnTransaction: true,
     editorProps: {
       attributes: {
-        class: "entry-content min-h-72 focus:outline-none",
+        // Stretching to fill the scroll area at lg keeps the whole pane
+        // clickable, so a tap below the last paragraph still lands the caret.
+        class: "entry-content min-h-72 focus:outline-none lg:flex-1",
         "aria-label": "Entry text",
       },
     },
@@ -73,14 +75,14 @@ export function RichTextEditor({
 
   if (!editor) {
     // Matches the editor's own height so the panel does not jump on hydration.
-    return <div className="min-h-72" aria-hidden />;
+    return <div className="min-h-72 flex-1" aria-hidden />;
   }
 
   const chain = () => editor.chain().focus();
 
   return (
-    <div>
-      <div className="mb-3 flex flex-wrap items-center gap-0.5 border-b border-line pb-2">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="mb-3 flex shrink-0 flex-wrap items-center gap-0.5 border-b border-line pb-2">
         <Tool
           editor={editor}
           title="Bold"
@@ -152,13 +154,15 @@ export function RichTextEditor({
         />
       </div>
 
-      <div className="relative">
+      {/* The scroll container: the toolbar above it stays in place while the
+          prose moves. */}
+      <div className="relative min-h-0 flex-1 overflow-y-auto lg:flex lg:flex-col">
         {editor.isEmpty && (
           <p className="entry-content pointer-events-none absolute inset-0 text-muted/60">
             {placeholder}
           </p>
         )}
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} className="lg:flex lg:flex-1 lg:flex-col" />
       </div>
     </div>
   );

@@ -40,8 +40,11 @@ export async function JournalShell({
   );
 
   return (
-    <div className="min-h-dvh">
-      <header className="sticky top-0 z-10 border-b border-line bg-paper/85 backdrop-blur">
+    // On a wide screen the frame owns the viewport and the sidebar and main
+    // pane scroll inside it. Narrow screens keep ordinary page scrolling:
+    // stacked panes with their own scrollbars are miserable on a phone.
+    <div className="flex min-h-dvh flex-col lg:h-dvh lg:overflow-hidden">
+      <header className="sticky top-0 z-10 shrink-0 border-b border-line bg-paper/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
           <Link href="/journal" className="font-serif text-lg whitespace-nowrap">
             📔 Journaley
@@ -60,8 +63,11 @@ export async function JournalShell({
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[20rem_1fr]">
-        <aside className="space-y-3">
+      <div
+        className="mx-auto grid w-full max-w-6xl flex-1 gap-6 px-4 py-6
+                   lg:min-h-0 lg:grid-cols-[20rem_1fr] lg:grid-rows-[minmax(0,1fr)]"
+      >
+        <aside className="space-y-3 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
           <Link
             href="/journal/new"
             className="btn w-full bg-accent text-paper hover:opacity-90"
@@ -93,7 +99,7 @@ export async function JournalShell({
           </nav>
         </aside>
 
-        <main className="min-w-0">{children}</main>
+        <main className="min-w-0 lg:min-h-0">{children}</main>
       </div>
     </div>
   );

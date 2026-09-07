@@ -81,8 +81,17 @@ export function EntryEditor({
   const [text, setText] = useState(entry?.body ?? "");
 
   return (
-    <article className="rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-8">
-      <form ref={formRef} action={formAction} className="space-y-5">
+    // The date row, title, tags and buttons stay put; only the entry text
+    // scrolls, so the save button never walks off the bottom of a long day.
+    <article
+      className="rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-8
+                 lg:flex lg:h-full lg:flex-col lg:overflow-hidden"
+    >
+      <form
+        ref={formRef}
+        action={formAction}
+        className="space-y-5 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
+      >
         {entry && <input type="hidden" name="id" value={entry.id} />}
         <input type="hidden" name="body_html" value={html} />
         <input type="hidden" name="body" value={text} />
