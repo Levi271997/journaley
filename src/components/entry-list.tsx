@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { deleteEntry } from "@/app/actions";
 import type { EntrySummary } from "@/lib/entries";
+import { ConfirmDialog } from "./confirm-dialog";
 
 function preview(body: string) {
   const text = body.replace(/\s+/g, " ").trim();
@@ -44,26 +46,69 @@ function TrashIcon() {
   );
 }
 
-function DeleteButton({ title }: { title: string }) {
+/**
+ * Opens the confirmation dialog rather than submitting. It still lives inside
+ * the form so useFormStatus can grey it out while the delete is in flight.
+ */
+function DeleteTrigger({ label, onRequest }: { label: string; onRequest: () => void }) {
   const { pending } = useFormStatus();
 
   return (
     <button
-      type="submit"
+      type="button"
       disabled={pending}
-      aria-label={`Delete ${title}`}
+      onClick={onRequest}
+      aria-label={`Delete ${label}`}
       title="Delete"
-      onClick={(event) => {
-        // Deleting an entry cannot be undone, so make it deliberate — the same
-        // check the editor's own delete button uses.
-        if (!window.confirm(`Delete “${title}”? This cannot be undone.`)) {
-          event.preventDefault();
-        }
-      }}
       className={`${ACTION_CLASS} hover:bg-red-500/10 hover:text-red-600 focus-visible:bg-red-500/10 dark:hover:text-red-400`}
     >
       <TrashIcon />
     </button>
+  );
+}
+
+function EntryActions({
+  id,
+  label,
+  from,
+}: {
+  id: number;
+  label: string;
+  from: string;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  return (
+    <div className="absolute top-1.5 right-2 flex items-center gap-0.5">
+      <Link
+        href={`/journal/${id}`}
+        aria-label={`Edit ${label}`}
+        title="Edit"
+        className={ACTION_CLASS}
+      >
+        <PencilIcon />
+      </Link>
+
+      {/* The dialog confirms, then submits the form on the component's behalf. */}
+      <form ref={formRef} action={deleteEntry}>
+        <input type="hidden" name="id" value={id} />
+        <input type="hidden" name="from" value={from} />
+        <DeleteTrigger label={label} onRequest={() => setConfirming(true)} />
+      </form>
+
+      <ConfirmDialog
+        open={confirming}
+        title="Delete this entry?"
+        message={`“${label}” will be gone for good. This cannot be undone.`}
+        confirmLabel="Delete entry"
+        onCancel={() => setConfirming(false)}
+        onConfirm={() => {
+          setConfirming(false);
+          formRef.current?.requestSubmit();
+        }}
+      />
+    </div>
   );
 }
 
@@ -114,22 +159,7 @@ export function EntryList({
               )}
             </Link>
 
-            <div className="absolute top-1.5 right-2 flex items-center gap-0.5">
-              <Link
-                href={`/journal/${entry.id}`}
-                aria-label={`Edit ${label}`}
-                title="Edit"
-                className={ACTION_CLASS}
-              >
-                <PencilIcon />
-              </Link>
-
-              <form action={deleteEntry}>
-                <input type="hidden" name="id" value={entry.id} />
-                <input type="hidden" name="from" value={pathname} />
-                <DeleteButton title={label} />
-              </form>
-            </div>
+            <EntryActions id={entry.id} label={label} from={pathname} />
           </li>
         );
       })}

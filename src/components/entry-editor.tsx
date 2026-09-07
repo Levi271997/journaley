@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { deleteEntry, saveEntry, type FormState } from "@/app/actions";
 import type { Entry } from "@/lib/db";
 import { MOODS } from "@/lib/moods";
+import { ConfirmDialog } from "./confirm-dialog";
 
 const EMPTY: FormState = {};
 
@@ -31,6 +32,10 @@ export function EntryEditor({
   const [state, formAction] = useActionState(saveEntry, EMPTY);
   const today = new Date().toISOString().slice(0, 10);
 
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const deleteSubmitRef = useRef<HTMLButtonElement>(null);
+
   // Controlled fields: React clears an uncontrolled form once its action
   // settles, which would throw away a whole entry if the save came back with
   // an error.
@@ -41,7 +46,7 @@ export function EntryEditor({
 
   return (
     <article className="rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-8">
-      <form action={formAction} className="space-y-5">
+      <form ref={formRef} action={formAction} className="space-y-5">
         {entry && <input type="hidden" name="id" value={entry.id} />}
 
         <div className="flex flex-wrap items-center gap-3">
@@ -112,23 +117,43 @@ export function EntryEditor({
         <div className="flex items-center gap-3 border-t border-line pt-4">
           <SaveButton />
           {entry && (
-            <button
-              type="submit"
-              formAction={deleteEntry}
-              formNoValidate
-              onClick={(event) => {
-                // Deleting an entry cannot be undone, so make it deliberate.
-                if (!window.confirm("Delete this entry? This cannot be undone.")) {
-                  event.preventDefault();
-                }
-              }}
-              className="btn ml-auto text-red-600 hover:bg-red-500/10 dark:text-red-400"
-            >
-              Delete
-            </button>
+            <>
+              {/* The real submitter, kept out of the tab order and triggered by
+                  the dialog. It carries formAction so this one submit deletes
+                  rather than saves. */}
+              <button
+                ref={deleteSubmitRef}
+                type="submit"
+                formAction={deleteEntry}
+                formNoValidate
+                tabIndex={-1}
+                aria-hidden
+                className="hidden"
+              />
+
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+                className="btn ml-auto text-red-600 hover:bg-red-500/10 dark:text-red-400"
+              >
+                Delete
+              </button>
+            </>
           )}
         </div>
       </form>
+
+      <ConfirmDialog
+        open={confirmingDelete}
+        title="Delete this entry?"
+        message={`“${entry?.title || "Untitled"}” will be gone for good. This cannot be undone.`}
+        confirmLabel="Delete entry"
+        onCancel={() => setConfirmingDelete(false)}
+        onConfirm={() => {
+          setConfirmingDelete(false);
+          formRef.current?.requestSubmit(deleteSubmitRef.current);
+        }}
+      />
     </article>
   );
 }
