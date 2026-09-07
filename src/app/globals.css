@@ -56,3 +56,91 @@
   @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2
          text-sm font-medium transition-colors disabled:opacity-50;
 }
+
+/* The rich editor's content. Deliberately plain: a journal page should read
+   like paper, so this sets rhythm and little else. */
+@layer components {
+  .entry-content {
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
+    line-height: 2;
+  }
+
+  .entry-content > * + * {
+    margin-top: 0.75em;
+  }
+
+  .entry-content h1,
+  .entry-content h2,
+  .entry-content h3 {
+    font-weight: 600;
+    line-height: 1.35;
+    margin-top: 1.2em;
+  }
+
+  .entry-content h1 {
+    font-size: 1.5rem;
+  }
+
+  .entry-content h2 {
+    font-size: 1.3rem;
+  }
+
+  .entry-content h3 {
+    font-size: 1.1rem;
+  }
+
+  .entry-content ul,
+  .entry-content ol {
+    padding-left: 1.5rem;
+  }
+
+  .entry-content ul {
+    list-style: disc;
+  }
+
+  .entry-content ol {
+    list-style: decimal;
+  }
+
+  .entry-content li::marker {
+    color: var(--color-muted);
+  }
+
+  .entry-content blockquote {
+    border-left: 3px solid var(--color-accent-soft);
+    padding-left: 1rem;
+    color: var(--color-muted);
+    font-style: italic;
+  }
+
+  .entry-content a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .entry-content code {
+    font-size: 0.9em;
+    background-color: var(--color-accent-soft);
+    border-radius: 0.25rem;
+    padding: 0.1em 0.3em;
+  }
+
+  .entry-content pre {
+    background-color: var(--color-accent-soft);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    overflow-x: auto;
+  }
+
+  .entry-content pre code {
+    background: none;
+    padding: 0;
+  }
+
+  .entry-content hr {
+    border-color: var(--color-line);
+    margin-block: 1.5em;
+  }
+}

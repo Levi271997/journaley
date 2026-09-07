@@ -6,8 +6,29 @@ import { deleteEntry, saveEntry, type FormState } from "@/app/actions";
 import type { Entry } from "@/lib/db";
 import { MOODS } from "@/lib/moods";
 import { ConfirmDialog } from "./confirm-dialog";
+import { RichTextEditor } from "./rich-text-editor";
 
 const EMPTY: FormState = {};
+
+/**
+ * Entries written before the rich editor hold plain text. Their newlines
+ * become paragraphs so they open as the prose they were, not one run-on block.
+ */
+function htmlFromPlainText(text: string) {
+  if (!text.trim()) return "";
+
+  return text
+    .split(/\n{2,}|\n/)
+    .filter((line) => line.trim())
+    .map(
+      (line) =>
+        `<p>${line
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")}</p>`,
+    )
+    .join("");
+}
 
 function SaveButton() {
   const { pending } = useFormStatus();
@@ -40,14 +61,21 @@ export function EntryEditor({
   // settles, which would throw away a whole entry if the save came back with
   // an error.
   const [title, setTitle] = useState(entry?.title ?? "");
-  const [body, setBody] = useState(entry?.body ?? "");
   const [mood, setMood] = useState(entry?.mood ?? "");
   const [date, setDate] = useState(entry?.entry_date ?? today);
+
+  // The editor keeps both shapes: HTML is what gets stored and reopened, and
+  // the plain text is what search and the sidebar previews read.
+  const initialHtml = entry?.body_html || htmlFromPlainText(entry?.body ?? "");
+  const [html, setHtml] = useState(initialHtml);
+  const [text, setText] = useState(entry?.body ?? "");
 
   return (
     <article className="rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-8">
       <form ref={formRef} action={formAction} className="space-y-5">
         {entry && <input type="hidden" name="id" value={entry.id} />}
+        <input type="hidden" name="body_html" value={html} />
+        <input type="hidden" name="body" value={text} />
 
         <div className="flex flex-wrap items-center gap-3">
           <input
@@ -94,15 +122,13 @@ export function EntryEditor({
                      placeholder:text-muted/60 focus:outline-none sm:text-3xl"
         />
 
-        <textarea
-          name="body"
-          rows={16}
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
+        <RichTextEditor
+          initialHtml={initialHtml}
           placeholder="How was your day?"
-          aria-label="Entry text"
-          className="w-full resize-y border-0 bg-transparent p-0 font-serif
-                     text-[1.05rem] leading-8 placeholder:text-muted/60 focus:outline-none"
+          onChange={(nextHtml, nextText) => {
+            setHtml(nextHtml);
+            setText(nextText);
+          }}
         />
 
         {state.error && (

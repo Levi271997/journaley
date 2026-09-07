@@ -19,6 +19,8 @@ export type Entry = {
   user_id: string;
   title: string;
   body: string;
+  /** Rich text from the editor; `body` is its plain-text mirror. */
+  body_html: string;
   mood: string | null;
   /** Date only, `YYYY-MM-DD`. */
   entry_date: string;

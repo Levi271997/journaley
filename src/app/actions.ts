@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, signIn, signOut, signUp } from "@/lib/auth";
 import { createEntry, deleteEntry as removeEntry, updateEntry } from "@/lib/entries";
 import { MOODS } from "@/lib/moods";
+import { sanitizeEntryHtml } from "@/lib/sanitize";
 
 export type FormState = { error?: string; notice?: string };
 
@@ -61,9 +62,16 @@ function readEntryForm(formData: FormData) {
   const rawMood = String(formData.get("mood") ?? "");
   const rawDate = String(formData.get("entry_date") ?? "").trim();
 
+  // Trimmed before sanitizing, not after: the sanitizer closes whatever tags
+  // the cut left open, so the stored markup is always well formed.
+  const bodyHtml = sanitizeEntryHtml(
+    String(formData.get("body_html") ?? "").slice(0, 200_000),
+  );
+
   return {
     title,
     body,
+    bodyHtml,
     mood: MOOD_VALUES.has(rawMood) ? rawMood : null,
     entryDate: /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
       ? rawDate

@@ -48,3 +48,8 @@ create policy "entries are private to their owner"
   to authenticated
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- Rich text: body_html holds the editor's markup, while body keeps a
+-- plain-text copy for searching and for the sidebar previews.
+alter table public.entries
+  add column if not exists body_html text not null default '';

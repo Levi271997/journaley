@@ -12,6 +12,7 @@ const SUMMARY_COLUMNS = "id, title, body, mood, entry_date, updated_at";
 export type EntryInput = {
   title: string;
   body: string;
+  bodyHtml: string;
   mood: string | null;
   entryDate: string;
 };
@@ -20,6 +21,7 @@ function row(input: EntryInput) {
   return {
     title: input.title,
     body: input.body,
+    body_html: input.bodyHtml,
     mood: input.mood,
     entry_date: input.entryDate,
   };
