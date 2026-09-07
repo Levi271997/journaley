@@ -104,5 +104,12 @@ export async function deleteEntry(formData: FormData) {
   if (Number.isInteger(id)) await removeEntry(id, user.id);
 
   revalidatePath("/journal", "layout");
-  redirect("/journal");
+
+  // Deleting from the sidebar should leave you on whatever you were reading,
+  // unless that is the entry you just deleted. The prefix check keeps the
+  // form from being used to bounce anyone off the site.
+  const from = String(formData.get("from") ?? "");
+  const stayPut = from.startsWith("/journal") && from !== `/journal/${id}`;
+
+  redirect(stayPut ? from : "/journal");
 }
