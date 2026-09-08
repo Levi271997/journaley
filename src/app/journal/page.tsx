@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { JournalShell } from "@/components/journal-shell";
+import { Link } from "@/components/link";
 import { getCurrentUser } from "@/lib/auth";
 import { countEntries } from "@/lib/entries";
 

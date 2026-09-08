@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
@@ -8,6 +7,7 @@ import { deleteEntry } from "@/app/actions";
 import { CATEGORY_EMOJI, CATEGORY_LABEL } from "@/lib/categories";
 import type { EntrySummary } from "@/lib/entries";
 import { ConfirmDialog } from "./confirm-dialog";
+import { Link } from "./link";
 
 function preview(body: string) {
   const text = body.replace(/\s+/g, " ").trim();

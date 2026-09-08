@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
+import { useProgressWhile } from "./progress";
 
 /**
  * Rewrites some of the journal's query parameters while leaving the rest
@@ -12,6 +13,10 @@ export function useJournalQuery() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+
+  // Filtering re-renders the sidebar on the server, so it gets the same top
+  // bar as a page navigation — the search box keeps its own inline hint.
+  useProgressWhile(isPending);
 
   function apply(changes: Record<string, string>) {
     const next = new URLSearchParams(searchParams.toString());

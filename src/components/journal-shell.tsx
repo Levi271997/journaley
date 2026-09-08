@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { logout } from "@/app/actions";
 import { getCurrentUser } from "@/lib/auth";
@@ -8,6 +7,7 @@ import { Avatar } from "./avatar";
 import { CategoryFilter } from "./category-filter";
 import { DateFilter } from "./date-filter";
 import { EntryList } from "./entry-list";
+import { Link } from "./link";
 import { SearchBox } from "./search-box";
 import { TagFilter } from "./tag-filter";
 

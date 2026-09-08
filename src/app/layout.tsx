@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Lora } from "next/font/google";
+import { ProgressProvider } from "@/components/progress";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
@@ -16,7 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${lora.variable} font-sans antialiased`}>
-        {children}
+        <ProgressProvider>{children}</ProgressProvider>
       </body>
     </html>
   );
