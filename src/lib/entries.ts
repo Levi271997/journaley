@@ -1,10 +1,8 @@
 import "server-only";
-import { CATEGORIES } from "./categories";
 import type { Entry } from "./db";
 import { createClient } from "./supabase/server";
 import { normalizeTag } from "./tags";
-
-const CATEGORY_VALUES = new Set<string>(CATEGORIES.map((c) => c.value));
+import { listCategories } from "./user-categories";
 
 export type EntrySummary = Pick<
   Entry,
@@ -63,7 +61,7 @@ export type EntryFilters = {
   /** Inclusive `YYYY-MM-DD` bounds on entry_date; either may stand alone. */
   from?: string;
   to?: string;
-  /** One value from lib/categories; anything else matches nothing. */
+  /** A built-in or one of the user's own categories; anything else is ignored. */
   category?: string;
   /** A single tag the entry must carry. */
   tag?: string;
@@ -95,9 +93,13 @@ export async function listEntries(
   }
 
   // Only a known category is worth a filter; an unknown one would quietly
-  // match nothing, which reads as "your entries vanished".
-  if (filters.category && CATEGORY_VALUES.has(filters.category)) {
-    query = query.eq("category", filters.category);
+  // match nothing, which reads as "your entries vanished". The lookup is one
+  // extra round trip, paid only while a category filter is on.
+  if (filters.category) {
+    const known = await listCategories(userId);
+    if (known.some((category) => category.value === filters.category)) {
+      query = query.eq("category", filters.category);
+    }
   }
 
   // Normalised first, so a tag typed into the URL by hand still matches the

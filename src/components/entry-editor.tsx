@@ -3,15 +3,19 @@
 import { useActionState, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { deleteEntry, saveEntry, type FormState } from "@/app/actions";
-import { CATEGORIES } from "@/lib/categories";
+import type { CategoryOption } from "@/lib/categories";
 import type { Entry } from "@/lib/db";
 import { MOODS } from "@/lib/moods";
 import { normalizeTag } from "@/lib/tags";
 import { ConfirmDialog } from "./confirm-dialog";
+import { NewCategoryRow } from "./new-category-row";
 import { RichTextEditor } from "./rich-text-editor";
 import { TagInput } from "./tag-input";
 
 const EMPTY: FormState = {};
+
+/** The select's "add one" choice. Never stored: picking it opens the row. */
+const NEW_CATEGORY = "__new__";
 
 /**
  * Entries written before the rich editor hold plain text. Their newlines
@@ -48,9 +52,12 @@ function SaveButton() {
 
 export function EntryEditor({
   entry,
+  categories,
   justSaved = false,
 }: {
   entry?: Entry;
+  /** Built-in and the user's own, from lib/user-categories. */
+  categories: CategoryOption[];
   justSaved?: boolean;
 }) {
   const [state, formAction] = useActionState(saveEntry, EMPTY);
@@ -67,6 +74,17 @@ export function EntryEditor({
   const [mood, setMood] = useState(entry?.mood ?? "");
   const [category, setCategory] = useState(entry?.category ?? "");
   const [date, setDate] = useState(entry?.entry_date ?? today);
+
+  // A category added mid-entry is selectable at once. The server refreshes
+  // the page's props too, so the union only matters until that lands.
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [addedCategories, setAddedCategories] = useState<CategoryOption[]>([]);
+  const categoryOptions = [
+    ...categories,
+    ...addedCategories.filter(
+      (added) => !categories.some((known) => known.value === added.value),
+    ),
+  ];
 
   // The draft is whatever has been typed but not yet turned into a chip. It
   // rides along in the hidden field so saving mid-word never loses a tag.
@@ -126,22 +144,39 @@ export function EntryEditor({
           <select
             name="category"
             value={category}
-            onChange={(event) => setCategory(event.target.value)}
+            onChange={(event) => {
+              // The "add" choice opens the row and leaves the real selection
+              // alone, so cancelling puts things back exactly as they were.
+              if (event.target.value === NEW_CATEGORY) setAddingCategory(true);
+              else setCategory(event.target.value);
+            }}
             aria-label="Category"
             className="field w-auto py-1.5 text-sm"
           >
             <option value="">Category…</option>
-            {CATEGORIES.map((option) => (
+            {categoryOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.emoji} {option.label}
               </option>
             ))}
+            <option value={NEW_CATEGORY}>＋ New category…</option>
           </select>
 
           {justSaved && (
             <span className="text-sm text-muted" role="status">
               Saved
             </span>
+          )}
+
+          {addingCategory && (
+            <NewCategoryRow
+              onAdded={(added) => {
+                setAddedCategories((current) => [...current, added]);
+                setCategory(added.value);
+                setAddingCategory(false);
+              }}
+              onCancel={() => setAddingCategory(false)}
+            />
           )}
         </div>
 

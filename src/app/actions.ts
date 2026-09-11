@@ -12,17 +12,22 @@ import {
   updateProfile,
 } from "@/lib/auth";
 import { removeAvatar, uploadAvatar } from "@/lib/avatars";
+import {
+  categoryEmoji,
+  categoryValue,
+  MAX_CATEGORY_LABEL_LENGTH,
+  type CategoryOption,
+} from "@/lib/categories";
 import { createEntry, deleteEntry as removeEntry, updateEntry } from "@/lib/entries";
-import { CATEGORIES } from "@/lib/categories";
 import { MOODS } from "@/lib/moods";
 import { sanitizeEntryHtml } from "@/lib/sanitize";
 import { parseTags } from "@/lib/tags";
+import { addCategory, listCategories } from "@/lib/user-categories";
 
 export type FormState = { error?: string; notice?: string };
 
 const NAME_RE = /^[\w.\- ]{2,32}$/;
 const MOOD_VALUES = new Set<string>(MOODS.map((m) => m.value));
-const CATEGORY_VALUES = new Set<string>(CATEGORIES.map((c) => c.value));
 
 /* ------------------------------------------------------------------ auth */
 
@@ -149,9 +154,42 @@ export async function savePassword(
   return { notice: "Password changed." };
 }
 
+/* ------------------------------------------------------------ categories */
+
+export type CategoryState = { error?: string; category?: CategoryOption };
+
+/**
+ * Adds one of the writer's own categories. Called straight from the editor
+ * rather than through a form, since it sits inside the entry form and forms
+ * do not nest; the new option is handed back so the editor can select it.
+ */
+export async function createCategory(
+  rawLabel: string,
+  rawEmoji: string,
+): Promise<CategoryState> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const label = String(rawLabel ?? "").trim().slice(0, MAX_CATEGORY_LABEL_LENGTH);
+  const value = categoryValue(label);
+  if (!value) {
+    return { error: "A category needs a name with at least one letter or number." };
+  }
+
+  const result = await addCategory(user.id, {
+    value,
+    label,
+    emoji: categoryEmoji(String(rawEmoji ?? "").slice(0, 32)),
+  });
+  if ("error" in result) return result;
+
+  revalidatePath("/journal", "layout");
+  return { category: result.category };
+}
+
 /* --------------------------------------------------------------- entries */
 
-function readEntryForm(formData: FormData) {
+async function readEntryForm(userId: string, formData: FormData) {
   const title = String(formData.get("title") ?? "").trim().slice(0, 200);
   const body = String(formData.get("body") ?? "").trim().slice(0, 50_000);
   const rawMood = String(formData.get("mood") ?? "");
@@ -168,12 +206,20 @@ function readEntryForm(formData: FormData) {
     String(formData.get("body_html") ?? "").slice(0, 200_000),
   );
 
+  // Built-in or the user's own; the lookup is skipped when no category was
+  // picked, which is most saves.
+  const category =
+    rawCategory &&
+    (await listCategories(userId)).some((option) => option.value === rawCategory)
+      ? rawCategory
+      : null;
+
   return {
     title,
     body,
     bodyHtml,
     mood: MOOD_VALUES.has(rawMood) ? rawMood : null,
-    category: CATEGORY_VALUES.has(rawCategory) ? rawCategory : null,
+    category,
     tags,
     entryDate: /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
       ? rawDate
@@ -185,7 +231,7 @@ export async function saveEntry(_prev: FormState, formData: FormData): Promise<F
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const input = readEntryForm(formData);
+  const input = await readEntryForm(user.id, formData);
   if (!input.title && !input.body) {
     return { error: "An entry needs a title or some text." };
   }

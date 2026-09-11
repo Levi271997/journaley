@@ -3,6 +3,7 @@ import { logout } from "@/app/actions";
 import { getCurrentUser } from "@/lib/auth";
 import { listEntries, listTags, type EntryFilters } from "@/lib/entries";
 import { MOOD_EMOJI } from "@/lib/moods";
+import { listCategories } from "@/lib/user-categories";
 import { Avatar } from "./avatar";
 import { CategoryFilter } from "./category-filter";
 import { DateFilter } from "./date-filter";
@@ -27,9 +28,10 @@ export async function JournalShell({
 
   // The tag list is of every tag the user owns, not just the ones surviving
   // the current filter, so narrowing to one tag does not hide all the others.
-  const [entries, tags] = await Promise.all([
+  const [entries, tags, categories] = await Promise.all([
     listEntries(user.id, filters),
     listTags(user.id),
+    listCategories(user.id),
   ]);
 
   const narrowed = Boolean(
@@ -89,7 +91,7 @@ export async function JournalShell({
 
           <DateFilter from={filters.from ?? ""} to={filters.to ?? ""} />
 
-          <CategoryFilter category={filters.category ?? ""} />
+          <CategoryFilter categories={categories} category={filters.category ?? ""} />
 
           <TagFilter tags={tags} active={filters.tag ?? ""} />
 
@@ -102,6 +104,7 @@ export async function JournalShell({
             <EntryList
               entries={entries}
               moods={MOOD_EMOJI}
+              categories={categories}
               emptyMessage={
                 narrowed ? "No entries match those filters." : "No entries yet."
               }

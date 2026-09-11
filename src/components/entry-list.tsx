@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { deleteEntry } from "@/app/actions";
-import { CATEGORY_EMOJI, CATEGORY_LABEL } from "@/lib/categories";
+import { findCategory, type CategoryOption } from "@/lib/categories";
 import type { EntrySummary } from "@/lib/entries";
 import { ConfirmDialog } from "./confirm-dialog";
 import { Link } from "./link";
@@ -118,10 +118,12 @@ function EntryActions({
 export function EntryList({
   entries,
   moods,
+  categories,
   emptyMessage,
 }: {
   entries: EntrySummary[];
   moods: Record<string, string>;
+  categories: CategoryOption[];
   emptyMessage: string;
 }) {
   const pathname = usePathname();
@@ -135,6 +137,9 @@ export function EntryList({
       {entries.map((entry) => {
         const active = pathname === `/journal/${entry.id}`;
         const label = entry.title || "Untitled";
+        const category = entry.category
+          ? findCategory(categories, entry.category)
+          : undefined;
 
         return (
           // The actions sit alongside the link rather than inside it: a form
@@ -167,8 +172,7 @@ export function EntryList({
                 <div className="mt-1.5 flex flex-wrap items-center gap-1">
                   {entry.category && (
                     <span className="rounded-full bg-accent-soft px-1.5 py-0.5 text-[0.65rem]">
-                      {CATEGORY_EMOJI[entry.category]}{" "}
-                      {CATEGORY_LABEL[entry.category] ?? entry.category}
+                      {category ? `${category.emoji} ${category.label}` : entry.category}
                     </span>
                   )}
                   {entry.tags?.slice(0, MAX_VISIBLE_TAGS).map((tag) => (

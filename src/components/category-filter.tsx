@@ -1,10 +1,16 @@
 "use client";
 
-import { CATEGORIES } from "@/lib/categories";
+import type { CategoryOption } from "@/lib/categories";
 import { useJournalQuery } from "./use-journal-query";
 
 /** Narrows the sidebar to one category, or to entries filed under none. */
-export function CategoryFilter({ category }: { category: string }) {
+export function CategoryFilter({
+  categories,
+  category,
+}: {
+  categories: CategoryOption[];
+  category: string;
+}) {
   const { apply } = useJournalQuery();
 
   return (
@@ -29,7 +35,7 @@ export function CategoryFilter({ category }: { category: string }) {
         className="field mt-2 py-1 text-sm"
       >
         <option value="">All categories</option>
-        {CATEGORIES.map((option) => (
+        {categories.map((option) => (
           <option key={option.value} value={option.value}>
             {option.emoji} {option.label}
           </option>

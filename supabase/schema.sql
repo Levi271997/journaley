@@ -1,8 +1,8 @@
 -- Journaley schema for Supabase Postgres.
 --
 -- Run once: Supabase dashboard -> SQL Editor -> New query -> paste -> Run.
--- Accounts themselves live in Supabase's own `auth.users` table, so the only
--- table this app owns is `entries`.
+-- Accounts themselves live in Supabase's own `auth.users` table; the tables
+-- this app owns are `entries` and `categories`.
 
 create table if not exists public.entries (
   id         bigint generated always as identity primary key,
@@ -65,6 +65,28 @@ create index if not exists idx_entries_tags
 
 create index if not exists idx_entries_user_category
   on public.entries (user_id, category);
+
+-- Custom categories: the ones a writer adds on top of the app's built-in
+-- list. `value` is the slug stored in entries.category.
+create table if not exists public.categories (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  value      text not null,
+  label      text not null,
+  emoji      text not null default '',
+  created_at timestamptz not null default now(),
+  unique (user_id, value)
+);
+
+alter table public.categories enable row level security;
+
+drop policy if exists "categories are private to their owner" on public.categories;
+create policy "categories are private to their owner"
+  on public.categories
+  for all
+  to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 -- Profile pictures. The bucket is public so a browser can render an avatar
 -- with a plain <img>; each upload gets a random file name, so knowing an

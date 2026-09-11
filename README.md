@@ -13,7 +13,8 @@ Built with **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind
   session cookies refreshed automatically on every request.
 - **Write, edit and delete entries** — title, free text, a date and an optional mood.
 - **Categories and tags** — file an entry under one category and give it as many of
-  your own tags as you like, then narrow the sidebar to either.
+  your own tags as you like, then narrow the sidebar to either. Seven categories
+  come built in; add your own from the editor's category picker.
 - **Search** across titles and entry text as you type.
 - **Profile settings** — a display name and picture, and changes of email address or
   password, all from `/journal/settings`.
@@ -25,17 +26,19 @@ Built with **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind
 
 You need a Supabase project (the free tier is plenty).
 
-1. **Create the table.** In the Supabase dashboard open **SQL Editor → New query**, paste
+1. **Create the tables.** In the Supabase dashboard open **SQL Editor → New query**, paste
    [`supabase/schema.sql`](supabase/schema.sql) and run it. This creates the `entries`
-   table, its index, the `updated_at` trigger and the RLS policy.
+   and `categories` tables, their indexes, the `updated_at` trigger and the RLS
+   policies.
 
    This also creates the `avatars` storage bucket that profile pictures live in.
 
    If your project is older than a feature, the files in
    [`supabase/migrations/`](supabase/migrations/) add it to an existing project — run
-   `002_add_tags_and_category.sql` for the category and tag columns, and
-   `003_add_avatars_bucket.sql` for profile pictures. A project created from
-   `schema.sql` today already has both.
+   `002_add_tags_and_category.sql` for the category and tag columns,
+   `003_add_avatars_bucket.sql` for profile pictures, and `004_add_categories.sql`
+   for your own categories. A project created from `schema.sql` today already has
+   all three.
 
 2. **Add your credentials.** Copy `.env.example` to `.env.local` and fill in the
    two values from the dashboard's **Connect** button (App Frameworks → Next.js):

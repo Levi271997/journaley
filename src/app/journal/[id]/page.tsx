@@ -3,6 +3,7 @@ import { EntryEditor } from "@/components/entry-editor";
 import { JournalShell } from "@/components/journal-shell";
 import { getCurrentUser } from "@/lib/auth";
 import { getEntry } from "@/lib/entries";
+import { listCategories } from "@/lib/user-categories";
 
 export default async function EntryPage({
   params,
@@ -17,7 +18,10 @@ export default async function EntryPage({
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
 
-  const entry = await getEntry(id, user.id);
+  const [entry, categories] = await Promise.all([
+    getEntry(id, user.id),
+    listCategories(user.id),
+  ]);
   if (!entry) notFound();
 
   const saved = (await searchParams).saved === "1";
@@ -25,7 +29,12 @@ export default async function EntryPage({
   return (
     <JournalShell>
       {/* Remounting on id change resets the uncontrolled inputs to the new entry. */}
-      <EntryEditor key={entry.id} entry={entry} justSaved={saved} />
+      <EntryEditor
+        key={entry.id}
+        entry={entry}
+        categories={categories}
+        justSaved={saved}
+      />
     </JournalShell>
   );
 }
