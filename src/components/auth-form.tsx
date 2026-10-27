@@ -47,7 +47,7 @@ export function AuthForm({ initialError }: { initialError?: string }) {
   return (
     <div className="w-full max-w-sm">
       <div className="mb-8 text-center">
-        <div className="mb-3 text-4xl">📔</div>
+        {/* <div className="mb-3 text-4xl">📔</div> */}
         <h1 className="font-serif text-3xl">
           {isLogin ? "Welcome back" : "Start your journal"}
         </h1>
